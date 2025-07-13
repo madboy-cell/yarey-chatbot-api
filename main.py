@@ -1,23 +1,28 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from pydantic import BaseModel
+from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
-from pinecone import Pinecone
 import os
+import pinecone
 
 app = FastAPI()
 
+# Pinecone setup
+api_key = os.getenv("PINECONE_API_KEY")
+environment = os.getenv("PINECONE_ENVIRONMENT")
+index_name = os.getenv("PINECONE_INDEX")
+
+pc = Pinecone(api_key=api_key)
+index = pc.Index(index_name)
+
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-pc = Pinecone(api_key=os.getenv("pcsk_fsCk9_JXNZU6pfDhgtJdwcXxmhxNrtWzcCCcwjw755ZAEqhMp1MTQnsorD8AxfJ5fuMkG"))
-index = pc.Index("yarey-chatbot")
+class Query(BaseModel):
+    question: str
 
-@app.post("/chat")
-async def chat(request: Request):
-    data = await request.json()
-    query = data.get("message")
-    vector = model.encode(query).tolist()
-    results = index.query(vector=vector, top_k=1, include_metadata=True)
-    match = results['matches'][0]['metadata']
-    return {
-        "reply_th": match.get("answer_th", ""),
-        "reply_en": match.get("answer_en", "")
-    }
+@app.post("/query")
+def query_bot(q: Query):
+    embedding = model.encode(q.question).tolist()
+    response = index.query(vector=embedding, top_k=3, include_metadata=True)
+    results = [match["metadata"] for match in response["matches"]]
+    return {"answer": results}
