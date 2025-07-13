@@ -1,11 +1,10 @@
-FROM python:3.10-slim
+FROM python:3.10
 
 WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 COPY . .
 
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
+EXPOSE 8080
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
