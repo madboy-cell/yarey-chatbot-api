@@ -1,5 +1,5 @@
 fastapi
 uvicorn
-pinecone-client
 sentence-transformers
-pandas
+pinecone-client
+pydantic
